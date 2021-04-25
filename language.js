@@ -468,8 +468,6 @@
                             $this.data[key] = resp.data[key];
                         }
                     }
-                },{
-                    token: localStorage.getItem($this.config.token)
                 });
             }
         };
