@@ -128,12 +128,14 @@
         this.nodes = {};    // 观察者节点
         this.config = {
             token: "lang-token",
-            cookie: "$lang",
+            lang: "$lang",
             languages: {
                 en: "英文",
                 zh: "中文"
             },
-            host: "http://user-admin.sany-test.com"    // 服务端
+            save_host: 'https://user-admin.sanyglobal.com/admin/lang/save',    // 保存信息服务地址
+            translate_host: 'https://user-admin.sanyglobal.com/openapi/language/translate',  // 翻译服务地址
+            clear_host: 'https://user-admin.sanyglobal.com/admin/lang/clear' // 清除缓存服务地址
         };
         this.$Tools = new Tools(this);
 
@@ -160,7 +162,7 @@
             var menu = '翻译模式  <select id="sany-lang-drop"><option value="">切换语言</option>';
             var select = '';
             for (var m in $this.config.languages){
-                if (m == localStorage.getItem($this.config.cookie)) {
+                if (m == localStorage.getItem($this.config.lang)) {
                     select = ' selected';
                 }else{
                     select = '';
@@ -189,12 +191,15 @@
             });
             // 清除缓存
             root.getElementById('sany-lang-clear').addEventListener('click',function(e){
-                var lang = window.localStorage.getItem($this.config.cookie);
+                var lang = window.localStorage.getItem($this.config.lang);
                 if (!lang){
                     alert('请选择语言版本');
                     return;
                 }
-                $this.$Tools.get($this.config.host+'/admin/lang/clear?siteid='+$this.$Tools.getSiteid()+'&lang='+lang,function(resp){
+                var formData = new FormData;
+                formData.append("site_id",$this.$Tools.getSiteid);
+                formData.append("lang",lang);
+                $this.$Tools.post($this.config.clear_host,formData,function(resp){
                     alert(resp.msg);
                 },{
                     token:$this.$Tools.getToken()
@@ -203,7 +208,7 @@
             // 绑定语言切换事件
             root.getElementById('sany-lang-drop').addEventListener('change',function(e){
                 var val = e.target.options[e.target.selectedIndex].value;
-                localStorage.setItem($this.config.cookie,val);
+                localStorage.setItem($this.config.lang,val);
                 location.reload();
             });
         };
@@ -224,7 +229,7 @@
         this.contextMenu = function(e){
             var $this = this;
             if (e.target.hasAttribute('lang-id')){
-                var lang = localStorage.getItem($this.config.cookie) || '';
+                var lang = localStorage.getItem($this.config.lang) || '';
                 if (!lang){
                     alert('请选择语言');
                     return;
@@ -421,7 +426,7 @@
          * 配置保存
          */
         this.save = function(){
-            var lang = localStorage.getItem(this.config.cookie);
+            var lang = localStorage.getItem(this.config.lang);
             if (Object.keys(this.saveData).length <= 0){
                 alert('未检测到更新');
                 return;
@@ -434,7 +439,7 @@
             formData.append("site_id",$this.$Tools.getSiteid());
             formData.append("lang",lang);
             formData.append("name", JSON.stringify(this.saveData));
-            $this.$Tools.post($this.config.host+'/admin/lang/save',formData,function(resp){
+            $this.$Tools.post($this.config.save_host,formData,function(resp){
                 alert(resp.msg);
                 if (resp.code == 1){
                     $this.saveData = {};
@@ -449,7 +454,7 @@
         this.trans = function(keys){
             var $this = this;
             var formData = new FormData;
-            var lang = localStorage.getItem($this.config.cookie);
+            var lang = localStorage.getItem($this.config.lang);
             var site_id = $this.$Tools.getSiteid();
             if (site_id && lang && keys.length){
                 formData.append("site_id",site_id);
@@ -457,7 +462,7 @@
                 keys.forEach(function(k){
                     formData.append("name[]",k);
                 });
-                $this.$Tools.post($this.config.host+'/openapi/language/translate',formData,function(resp){
+                $this.$Tools.post($this.config.translate_host,formData,function(resp){
                     if (resp.code && Object.keys(resp.data).length){
                         for (var key in resp.data){
                             $this.data[key] = resp.data[key];
