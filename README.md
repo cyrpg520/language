@@ -1,19 +1,19 @@
 ## 一、项目说明
-
-    最近公司有个项目需要给官网及子站点做国际化，需要支持7门语言，按照传统的框架解决方案，是在服务端和前端都定义不同版本的语言包，通过语言标识来调用不同的语言包实现语言版本的切换。但是该方案对于前后台改造成本都比较大，如果是要实现内容的国际化，需要在数据库、后台UI、逻辑处理上都要进行改造升级，7门语言工作量可想而知。但是我最不能容忍的是业务数据与翻译数据的耦合，让开发人员，运营人员在开发或添加内容的时候不得不考虑多语言的问题，这是很蛋疼的事情。所以我只能另辟蹊径，寻找更简单更通用的方式来实现国际化的项目。
 	
-	传统的多语言方案本质上就是通过预先定义好的不同的语言包，通过代码进行切换，是静态方案。目前，我们通过动态方案，已经在测试和生产上都有部署，效果还不错。实质就是预先将所有的文本信息翻译好，做好映射保存到数据库，然后页面刷新时，抓取页面所有的文本信息，作为参数请求接口获取对应语言包的数据，然后遍历页面每个节点文本信息进行自动替换。关键在于两部分，一是怎么人工翻译页面，二是怎么自动翻译文本。
+    传统的多语言方案是通过预先定义好的不同的语言包，通过代码进行切换，属于静态方案。目前，我们通过动态方案，实质就是预先将当前页面的文本信息翻译好，做好映射保存到数据库，然后页面刷新时，抓取页面所有的文本信息，作为参数请求接口获取对应语言包的数据，然后遍历页面每个节点文本信息进行自动替换。`关键在于两部分，一是如何对文本信息进行翻译并保存，二是刷新页面怎么自动将文本进行翻译。`
 	
-	人工翻译我们使用可视化编辑的形式，翻译人员直接在页面上面编辑需要翻译的内容，然后保存即可
+- **如何对文本信息进行翻译并保存**。使用可视化编辑的模式，翻译人员直接在页面上面编辑需要翻译的内容，然后保存即可。
+
+- **刷新页面怎么自动将文本进行翻译**。页面加载完成后，会遍历所有文本节点，然后将每个文本通过sha1加密，放到数组中作为参数请求翻译API，然后将返回的语言包进行文本替换，替换逻辑通过数据与视图绑定(`defineProperty`)来实现。异步加载页面文本替换通过`MutationObserver`事件监听插入dom节点的变化
 
 
-##  二、使用说明
+## 二、使用说明
 
 
 #### 1.引入js文件
 在当前项目公共部分引入以下js文件
 ```javascript
-<script id="langScript" src="https://user-admin.sanyglobal.com/statics/js/language.js?siteid=202104201128546850"></script>
+<script id="langScript" src="http://user-admin.sany-test.com/statics/js/language.js?siteid=你的站点ID"></script>
 ```
 
 #### 2.初始化
@@ -40,12 +40,15 @@ Lang.setConfig("translate_host","");  // 语言包翻译接口
 Lang.setConfig("clear_host","");  // 清除语言包缓存接口
 ```
 
-#### 4.服务端接口
+#### 4.节点标记
+对于普通的文本节点均能自动识别并进行文本修改，但有两个节点比较特殊：SELECT元素和富文本编辑器(目前测试发现的)。SELECT元素无法通过contenteditable进行修改，系统处理方案是通过弹层，将OPTION节点的文本复制到弹层中，然后进行编辑。富文本内容需要在富文本的容器元素添加 `lang-edit` 属性，这样系统就不会解析内 lang-edit 元素内的文本节点，可以实现对富文本的统一修改，如果不加该标记，就会解析富文本中所有的文本节点，使翻译工作量加大。
+
+## 二、服务端接口
 
 - 保存语言包接口
 
 
-> https://user-admin.sanyglobal.com/admin/lang/save
+> http://user-admin.sany-test.com/admin/lang/save
 
 - POST
 
@@ -64,7 +67,7 @@ Lang.setConfig("clear_host","");  // 清除语言包缓存接口
 
 - 语言包翻译接口
 
-> https://user-admin.sanyglobal.com/openapi/language/translate
+> http://user-admin.sany-test.com/openapi/language/translate
 
 - POST
 
@@ -76,7 +79,7 @@ Lang.setConfig("clear_host","");  // 清除语言包缓存接口
 
 - 清除语言包缓存接口
 
-> https://user-admin.sanyglobal.com/admin/lang/clear
+> http://user-admin.sany-test.com/admin/lang/clear
 
 - POST
 
@@ -91,6 +94,21 @@ Lang.setConfig("clear_host","");  // 清除语言包缓存接口
 |:----    |:---|:----- |-----   |
 |token |否  |string |访问令牌,服务端验证   |
 
-## 三、语言翻译
+## 三、操作流程
 
-    通过后台，进入可视化编辑界面，系统会自动识别页面文本信息，双击左键或单击右键进行文本内容的编辑，页面翻译完成后，点击底部保存按钮即可。
+1. 进入后台，添加站点，填写站点名称和域名信息，保存。(测试地址：http://user-admin.sany-test.com/admin/index/index  测试账号:lang_test/sany123456)
+![](http://showdoc.sany-test.com/server/index.php?s=/api/attachment/visitFile/sign/fa3cee02f1b78fcb472d28c59cfe655b)
+
+![](http://showdoc.sany-test.com/server/index.php?s=/api/attachment/visitFile/sign/db67ab9a2f0130dfb8afc997f5242162)
+
+2.复制js代码，按文档第二部分的使用说明，放到公共地方。
+![](http://showdoc.sany-test.com/server/index.php?s=/api/attachment/visitFile/sign/5fdf18785819730b8be87e2eecaec770)
+
+3.进入可视化模式，对站点进行翻译
+![](http://showdoc.sany-test.com/server/index.php?s=/api/attachment/visitFile/sign/4d0b0b705cdeb0a63fae18b1f2ad381e)
+
+`服务端后台和接口可以根据文档自行实现`
+
+## 四、扩展
+
+**APP端的实现**，实现原理应该大同小异，可能实现可视化编辑比较困难，希望各位大牛能提供解决方案，本人主后端开发，主要提供解决方案和思路，希望前端大神能够进行优化及完善
