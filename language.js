@@ -133,9 +133,9 @@
                 en: "英文",
                 zh: "中文"
             },
-            save_host: 'https://user-admin.sanyglobal.com/admin/lang/save',    // 保存信息服务地址
-            translate_host: 'https://user-admin.sanyglobal.com/openapi/language/translate',  // 翻译服务地址
-            clear_host: 'https://user-admin.sanyglobal.com/admin/lang/clear' // 清除缓存服务地址
+            save_api: 'http://user-admin.sany-test.com/admin/lang/save',    // 保存信息服务地址
+            translate_api: 'http://user-admin.sany-test.com/openapi/language/translate',  // 翻译服务地址
+            clear_api: 'http://user-admin.sany-test.com/admin/lang/clear' // 清除缓存服务地址
         };
         this.$Tools = new Tools(this);
 
@@ -199,7 +199,7 @@
                 var formData = new FormData;
                 formData.append("site_id",$this.$Tools.getSiteid);
                 formData.append("lang",lang);
-                $this.$Tools.post($this.config.clear_host,formData,function(resp){
+                $this.$Tools.post($this.config.clear_api,formData,function(resp){
                     alert(resp.msg);
                 },{
                     token:$this.$Tools.getToken()
@@ -439,7 +439,7 @@
             formData.append("site_id",$this.$Tools.getSiteid());
             formData.append("lang",lang);
             formData.append("name", JSON.stringify(this.saveData));
-            $this.$Tools.post($this.config.save_host,formData,function(resp){
+            $this.$Tools.post($this.config.save_api,formData,function(resp){
                 alert(resp.msg);
                 if (resp.code == 1){
                     $this.saveData = {};
@@ -462,7 +462,7 @@
                 keys.forEach(function(k){
                     formData.append("name[]",k);
                 });
-                $this.$Tools.post($this.config.translate_host,formData,function(resp){
+                $this.$Tools.post($this.config.translate_api,formData,function(resp){
                     if (resp.code && Object.keys(resp.data).length){
                         for (var key in resp.data){
                             $this.data[key] = resp.data[key];
